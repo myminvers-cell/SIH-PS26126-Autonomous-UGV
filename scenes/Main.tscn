@@ -1,0 +1,156 @@
+[gd_scene load_steps=17 format=3 uid="uid://cm41nscene001"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/UGV.tscn" id="2_ugv"]
+[ext_resource type="Script" path="res://scripts/ObstacleManager.gd" id="3_obsmgr"]
+[ext_resource type="Script" path="res://scripts/Perception.gd" id="4_perc"]
+[ext_resource type="Script" path="res://scripts/PathVisualizer.gd" id="5_pathvis"]
+[ext_resource type="Script" path="res://scripts/CameraFollow.gd" id="6_cam"]
+[ext_resource type="PackedScene" path="res://scenes/UI/HUD.tscn" id="7_hud"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.22, 0.28, 0.42, 1)
+sky_horizon_color = Color(0.62, 0.68, 0.78, 1)
+sky_curve = 0.12
+ground_bottom_color = Color(0.18, 0.2, 0.16, 1)
+ground_horizon_color = Color(0.42, 0.44, 0.38, 1)
+ground_curve = 0.08
+sun_angle_max = 40.0
+
+[sub_resource type="Sky" id="Sky_scene"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+process_mode = 0
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_scene")
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.67, 0.75, 1)
+ambient_light_energy = 0.9
+fog_enabled = true
+fog_light_color = Color(0.7, 0.75, 0.82, 1)
+fog_light_energy = 1.0
+fog_sun_scatter = 0.5
+fog_density = 0.006
+fog_aerial_perspective = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.24, 0.27, 0.20, 1)
+roughness = 0.98
+metallic = 0.0
+normal_enabled = false
+
+[sub_resource type="BoxMesh" id="BoxMesh_ground"]
+material = SubResource("StandardMaterial3D_ground")
+size = Vector3(60, 0.4, 60)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
+size = Vector3(60, 0.4, 60)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_border"]
+albedo_color = Color(0.18, 0.20, 0.16, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="BoxMesh_border"]
+material = SubResource("StandardMaterial3D_border")
+size = Vector3(62, 0.3, 62)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_goal_glow"]
+albedo_color = Color(0.15, 0.85, 0.35, 1)
+emission_enabled = true
+emission = Color(0.15, 0.9, 0.35, 1)
+emission_energy_multiplier = 0.9
+shading_mode = 2
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring_a"]
+material = SubResource("StandardMaterial3D_goal_glow")
+inner_radius = 0.6
+outer_radius = 1.2
+ring_segments = 20
+section_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_goal_gold"]
+albedo_color = Color(1.0, 0.85, 0.1, 1)
+emission_enabled = true
+emission = Color(1.0, 0.8, 0.1, 1)
+emission_energy_multiplier = 0.9
+shading_mode = 2
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring_b"]
+material = SubResource("StandardMaterial3D_goal_gold")
+inner_radius = 0.6
+outer_radius = 1.2
+ring_segments = 20
+section_segments = 6
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 10, 20, 10)
+light_color = Color(1.0, 0.96, 0.88, 1)
+light_energy = 1.4
+shadow_enabled = false
+
+[node name="AmbientFill" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0.353, -0.354, 0, 0.707, 0.707, 0.5, -0.612, 0.612, -10, 15, 10)
+light_color = Color(0.6, 0.65, 0.8, 1)
+light_energy = 0.3
+shadow_enabled = false
+
+[node name="Terrain" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+
+[node name="Ground" type="MeshInstance3D" parent="Terrain"]
+mesh = SubResource("BoxMesh_ground")
+
+[node name="Border" type="MeshInstance3D" parent="Terrain"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+mesh = SubResource("BoxMesh_border")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Terrain"]
+shape = SubResource("BoxShape3D_ground")
+
+[node name="PointA_Ring" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.22, -24)
+mesh = SubResource("TorusMesh_ring_a")
+
+[node name="PointA_Light" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 1.5, -24)
+light_color = Color(0.2, 1, 0.4, 1)
+light_energy = 2.0
+omni_range = 4.0
+shadow_enabled = false
+
+[node name="PointB_Ring" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.22, 24)
+mesh = SubResource("TorusMesh_ring_b")
+
+[node name="PointB_Light" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 1.5, 24)
+light_color = Color(1, 0.85, 0.2, 1)
+light_energy = 2.5
+omni_range = 5.0
+shadow_enabled = false
+
+[node name="ObstacleManager" type="Node3D" parent="."]
+script = ExtResource("3_obsmgr")
+
+[node name="Perception" type="Node" parent="."]
+script = ExtResource("4_perc")
+
+[node name="PathVisualizer" type="Node3D" parent="."]
+script = ExtResource("5_pathvis")
+
+[node name="UGV" parent="." instance=ExtResource("2_ugv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.4, -24)
+
+[node name="MainCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, -24, 5, -18)
+current = true
+script = ExtResource("6_cam")
+
+[node name="HUD" parent="." instance=ExtResource("7_hud")]

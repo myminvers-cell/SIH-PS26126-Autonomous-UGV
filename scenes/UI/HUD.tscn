@@ -1,0 +1,415 @@
+[gd_scene load_steps=5 format=3 uid="uid://cui84hud001"]
+
+[ext_resource type="Script" path="res://scripts/UIManager.gd" id="1_uimgr"]
+[ext_resource type="Script" path="res://scripts/CostMapDisplay.gd" id="2_costmap"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.08, 0.1, 0.13, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.35, 0.45, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_modal"]
+bg_color = Color(0.05, 0.08, 0.1, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.8, 0.4, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_uimgr")
+
+[node name="TopBar" type="PanelContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = 44.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "VISION BASED AUTONOMOUS UGV"
+
+[node name="VSeparator" type="VSeparator" parent="TopBar/HBox"]
+layout_mode = 2
+
+[node name="PSLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "SIH PS 26126 PROTOTYPE"
+
+[node name="LeftPanel" type="PanelContainer" parent="."]
+offset_left = 12.0
+offset_top = 52.0
+offset_right = 320.0
+offset_bottom = 475.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="LeftPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StatusHeader" type="Label" parent="LeftPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "=== SYSTEM STATUS ==="
+horizontal_alignment = 1
+
+[node name="StatusSection" type="GridContainer" parent="LeftPanel/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="GPSLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "GPS:"
+
+[node name="GPSVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "DISABLED"
+
+[node name="LocLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Localization:"
+
+[node name="LocVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "Simulated Visual Odometry"
+
+[node name="CamLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Camera:"
+
+[node name="CamVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "ACTIVE"
+
+[node name="PercLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Perception:"
+
+[node name="PercVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "ACTIVE"
+
+[node name="PlanLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Planner:"
+
+[node name="PlanVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.2, 1)
+theme_override_font_sizes/font_size = 11
+text = "A* Cost-Aware"
+
+[node name="NavLabel" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Navigation:"
+
+[node name="NavVal" type="Label" parent="LeftPanel/VBox/StatusSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "AUTONOMOUS"
+
+[node name="HSeparator" type="HSeparator" parent="LeftPanel/VBox"]
+layout_mode = 2
+
+[node name="TelemetryHeader" type="Label" parent="LeftPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "=== LIVE TELEMETRY ==="
+horizontal_alignment = 1
+
+[node name="TelemetrySection" type="GridContainer" parent="LeftPanel/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="StateLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Nav State:"
+
+[node name="StateVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 11
+text = "STOPPED"
+
+[node name="SpeedLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Speed:"
+
+[node name="SpeedVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "0.00 m/s"
+
+[node name="PosLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Position:"
+
+[node name="PosVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "X: -24.0 | Z: -24.0"
+
+[node name="HeadingLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Heading:"
+
+[node name="HeadingVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "0.0°"
+
+[node name="GoalDistLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Goal Distance:"
+
+[node name="GoalDistVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "67.8 m"
+
+[node name="ObstacleLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Nearest Obstacle:"
+
+[node name="ObstacleVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 11
+text = "CLEAR"
+
+[node name="RiskLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Current Risk:"
+
+[node name="RiskVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "LOW"
+
+[node name="PathLenLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Active Path:"
+
+[node name="PathLenVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "0 waypoints"
+
+[node name="ReplansLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Replans:"
+
+[node name="ReplansVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "0"
+
+[node name="RightPanel" type="PanelContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 52.0
+offset_right = -12.0
+offset_bottom = 345.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="RightPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CostMapTitle" type="Label" parent="RightPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "TOP-DOWN COST MAP"
+horizontal_alignment = 1
+
+[node name="CostMapContainer" type="CenterContainer" parent="RightPanel/VBox"]
+layout_mode = 2
+
+[node name="CostMapDisplay" type="Control" parent="RightPanel/VBox/CostMapContainer"]
+custom_minimum_size = Vector2(180, 180)
+layout_mode = 2
+script = ExtResource("2_costmap")
+
+[node name="LegendLabel" type="Label" parent="RightPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
+theme_override_font_sizes/font_size = 9
+text = "■ Safe  ■ Uncertain  ■ Blocked"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="RightPanel/VBox"]
+layout_mode = 2
+
+[node name="CamTitle" type="Label" parent="RightPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "CAMERA VIEW"
+horizontal_alignment = 1
+
+[node name="CamBox" type="HBoxContainer" parent="RightPanel/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="BtnChase" type="Button" parent="RightPanel/VBox/CamBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "[1] Chase"
+
+[node name="BtnFront" type="Button" parent="RightPanel/VBox/CamBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "[2] Front"
+
+[node name="BtnTop" type="Button" parent="RightPanel/VBox/CamBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "[3] Top"
+
+[node name="BottomBar" type="PanelContainer" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -54.0
+offset_right = -12.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="HBox" type="HBoxContainer" parent="BottomBar"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="BtnStart" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(140, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+text = "▶ START AUTONOMY"
+
+[node name="BtnStop" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(90, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+text = "⏹ STOP"
+
+[node name="BtnSpawn" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(150, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+text = "⚠ SPAWN OBSTACLE"
+
+[node name="BtnReplan" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(130, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+text = "⟳ FORCE REPLAN"
+
+[node name="BtnReset" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(90, 32)
+layout_mode = 2
+text = "↺ RESET"
+
+[node name="BtnMode" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+text = "MODE: AUTO"
+
+[node name="GoalOverlay" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -110.0
+offset_right = 200.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_modal")
+
+[node name="VBox" type="VBoxContainer" parent="GoalOverlay"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="GoalTitle" type="Label" parent="GoalOverlay/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+text = "★ GOAL REACHED ★"
+horizontal_alignment = 1
+
+[node name="GoalStatsLabel" type="Label" parent="GoalOverlay/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Navigation Complete!
+Collision Status: SAFE
+Total Distance: 0.0 m
+Replans Executed: 0"
+horizontal_alignment = 1
+
+[node name="BtnRestart" type="Button" parent="GoalOverlay/VBox"]
+custom_minimum_size = Vector2(160, 34)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "RESTART SCENARIO"
