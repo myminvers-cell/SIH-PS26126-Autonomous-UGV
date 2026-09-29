@@ -6,7 +6,7 @@ A Godot 4 3D driving and navigation prototype for the Smart India Hackathon prob
 
 - A **1.2 km route** through a **1.28 km × 256 m** playable map.
 - A broad, one-way **four-lane highway** with left-hand traffic, five town junctions, connecting service roads, and moving cross traffic.
-- Procedural Indian-style shopfronts, bus shelters, streetlights, road signs, lane paint, and reflective road materials.
+- Procedural Indian-style shopfronts, bus shelters, streetlights, road signs, and lane markings.
 - Moving cars, buses, delivery trucks, auto-rickshaws, motorcycles, and pedestrians. Traffic follows Indian left-hand-drive lanes, leaves safe gaps, yields at junctions, and uses the right-hand lane to pass. Vehicle impacts stop and visibly damage traffic cars; wrecks remain as hazards for the UGV and other traffic.
 - A* route planning, simulated vision sensing, localization, collision-aware motion, traffic bypassing, and recovery behavior for the UGV.
 
@@ -31,18 +31,6 @@ These are **estimated targets** for the current GL Compatibility renderer and pr
 
 - **Windows:** Run `builds/windows/SIH UGV.exe`. It is a single self-contained executable with the project data embedded; Godot is not required on the target PC.
 - **Rebuild:** Run `build_game.ps1` from this project folder. Building requires Godot 4.7.2 and its matching Windows export template installed on the build PC. The packaged game itself has no Godot installation requirement.
-
-## Add a custom road texture
-
-Place seamless road maps in `assets/textures/road/` using these exact filenames:
-
-| File | Map | Required |
-|---|---|---|
-| `road_albedo.jpg` | Asphalt color/base color (sRGB) | Optional; a dark asphalt color is used if absent |
-| `road_normal.png` | Tangent-space normal map (OpenGL, +Y green channel) | Optional |
-| `road_roughness.png` | Roughness, white = rough and black = smooth | Optional |
-
-The road uses world-space shader sampling and repeats the texture every 9 metres, so it does not depend on mesh UVs. Texture loading uses Godot's resource system first (including in standalone exports) and falls back to the source image while developing. Add `road_albedo.jpg` first for a simple replacement; add the normal and roughness maps for extra surface depth and reflections. Keep these maps in JPG or PNG format. After adding or replacing textures, let Godot finish importing before running or exporting the project.
 
 ## Controls
 
