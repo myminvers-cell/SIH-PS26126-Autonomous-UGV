@@ -7,7 +7,7 @@ enum CamMode { CHASE, FRONT, TOP_DOWN }
 @export_range(0.5, 20.0, 0.5) var smooth_speed: float = 7.0
 @export var chase_distance: float = 7.0
 @export var chase_height: float = 5.0
-@export var top_down_height: float = 75.0
+@export var top_down_height: float = 125.0
 
 var current_mode: CamMode = CamMode.CHASE
 var _front_camera: Camera3D

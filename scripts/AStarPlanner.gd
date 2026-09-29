@@ -48,9 +48,10 @@ func find_path(start_pos: Vector3, goal_pos: Vector3) -> Array[Vector3]:
 		var single_path: Array[Vector3] = [goal_pos]
 		return single_path
 
-	# Priority queue using an array sorted by f_score descending (pop from back is O(1))
-	var open_set: Array[Vector2i] = [start_grid]
-	var in_open_set: Dictionary = {start_grid: true}
+	# Binary min-heap keeps route replans O(log n) per queue operation.
+	var open_set: Array[Dictionary] = []
+	_heap_push(open_set, start_grid, heuristic(start_grid, goal_grid))
+	var closed_set: Dictionary = {}
 	var came_from: Dictionary = {}
 
 	var g_score: Dictionary = {start_grid: 0.0}
@@ -65,24 +66,16 @@ func find_path(start_pos: Vector3, goal_pos: Vector3) -> Array[Vector3]:
 	while open_set.size() > 0 and iterations < MAX_ITERATIONS:
 		iterations += 1
 		
-		# Find node with lowest f_score in open_set
-		var current_index: int = 0
-		var lowest_f: float = f_score.get(open_set[0], 999999.0)
-		for i in range(1, open_set.size()):
-			var f_val: float = f_score.get(open_set[i], 999999.0)
-			if f_val < lowest_f:
-				lowest_f = f_val
-				current_index = i
-				
-		var current: Vector2i = open_set[current_index]
+		var entry := _heap_pop(open_set)
+		var current: Vector2i = entry["node"]
+		# Improved nodes are pushed again; discard stale heap entries cheaply.
+		if float(entry["priority"]) > float(f_score.get(current, 999999.0)) + 0.0001 or closed_set.has(current):
+			continue
+		closed_set[current] = true
 		
 		# Check if reached goal
 		if current == goal_grid:
 			return _reconstruct_path(came_from, current, start_pos, goal_pos)
-
-		# Remove from open_set
-		open_set.remove_at(current_index)
-		in_open_set.erase(current)
 
 		var cur_g: float = g_score.get(current, 999999.0)
 
@@ -115,15 +108,47 @@ func find_path(start_pos: Vector3, goal_pos: Vector3) -> Array[Vector3]:
 				var new_f: float = tentative_g + heuristic(neighbor, goal_grid)
 				f_score[neighbor] = new_f
 
-				if not in_open_set.has(neighbor):
-					open_set.append(neighbor)
-					in_open_set[neighbor] = true
+				_heap_push(open_set, neighbor, new_f)
 
 	# Fallback: if exact goal wasn't reached, try to return path to the closest reachable node
 	if closest_node != start_grid and came_from.has(closest_node):
 		return _reconstruct_path(came_from, closest_node, start_pos, cost_map.grid_to_world(closest_node))
 
 	return []
+
+func _heap_push(heap: Array[Dictionary], node: Vector2i, priority: float) -> void:
+	var index := heap.size()
+	heap.append({"node": node, "priority": priority})
+	while index > 0:
+		var parent := floori(float(index - 1) * 0.5)
+		if float(heap[parent]["priority"]) <= priority:
+			break
+		heap[index] = heap[parent]
+		index = parent
+	heap[index] = {"node": node, "priority": priority}
+
+func _heap_pop(heap: Array[Dictionary]) -> Dictionary:
+	var first: Dictionary = heap[0]
+	var last: Dictionary = heap.pop_back()
+	if heap.is_empty():
+		return first
+	heap[0] = last
+	var index := 0
+	while true:
+		var left := index * 2 + 1
+		if left >= heap.size():
+			break
+		var right := left + 1
+		var smaller := left
+		if right < heap.size() and float(heap[right]["priority"]) < float(heap[left]["priority"]):
+			smaller = right
+		if float(heap[index]["priority"]) <= float(heap[smaller]["priority"]):
+			break
+		var swap: Dictionary = heap[index]
+		heap[index] = heap[smaller]
+		heap[smaller] = swap
+		index = smaller
+	return first
 
 func _reconstruct_path(came_from: Dictionary, current: Vector2i, _start_pos: Vector3, goal_pos: Vector3) -> Array[Vector3]:
 	var grid_path: Array[Vector2i] = [current]

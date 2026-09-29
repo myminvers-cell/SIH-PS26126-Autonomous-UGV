@@ -3,8 +3,8 @@ extends CanvasLayer
 
 signal start_autonomy_pressed()
 signal stop_pressed()
-signal spawn_obstacle_pressed()
 signal force_replan_pressed()
+signal spawn_obstacle_pressed()
 signal reset_pressed()
 signal mode_toggle_pressed()
 signal retry_nav_pressed()
@@ -13,6 +13,7 @@ signal camera_mode_changed(mode_idx: int)
 # Top Bar
 @onready var title_label: Label = $TopBar/HBox/TitleLabel
 @onready var ps_label: Label = $TopBar/HBox/PSLabel
+@onready var fps_label: Label = $TopBar/HBox/FPSLabel
 
 # Status Panel
 @onready var gps_label: Label = $LeftPanel/VBox/StatusSection/GPSVal
@@ -36,8 +37,8 @@ signal camera_mode_changed(mode_idx: int)
 # Buttons
 @onready var btn_start: Button = $BottomBar/HBox/BtnStart
 @onready var btn_stop: Button = $BottomBar/HBox/BtnStop
-@onready var btn_spawn: Button = $BottomBar/HBox/BtnSpawn
 @onready var btn_replan: Button = $BottomBar/HBox/BtnReplan
+@onready var btn_spawn_obstacle: Button = $BottomBar/HBox/BtnSpawnObstacle
 @onready var btn_reset: Button = $BottomBar/HBox/BtnReset
 @onready var btn_mode: Button = $BottomBar/HBox/BtnMode
 
@@ -58,8 +59,8 @@ func _ready() -> void:
 	# Connect buttons
 	btn_start.pressed.connect(func(): start_autonomy_pressed.emit())
 	btn_stop.pressed.connect(func(): stop_pressed.emit())
-	btn_spawn.pressed.connect(func(): spawn_obstacle_pressed.emit())
 	btn_replan.pressed.connect(func(): force_replan_pressed.emit())
+	btn_spawn_obstacle.pressed.connect(func(): spawn_obstacle_pressed.emit())
 	btn_reset.pressed.connect(func(): reset_pressed.emit())
 	btn_mode.pressed.connect(func(): mode_toggle_pressed.emit())
 
@@ -96,8 +97,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			start_autonomy_pressed.emit()
 		elif event.keycode == KEY_R:
 			reset_pressed.emit()
-		elif event.keycode == KEY_O:
-			spawn_obstacle_pressed.emit()
 
 func update_telemetry(
 	state: String,
@@ -112,6 +111,9 @@ func update_telemetry(
 	replans: int,
 	is_auto: bool
 ) -> void:
+	var fps := Engine.get_frames_per_second()
+	fps_label.text = "FPS: %d" % fps
+	fps_label.modulate = Color(0.2, 1.0, 0.4) if fps >= 55 else (Color(1.0, 0.8, 0.2) if fps >= 40 else Color(1.0, 0.35, 0.25))
 	state_val.text = state
 	_style_state_label(state)
 

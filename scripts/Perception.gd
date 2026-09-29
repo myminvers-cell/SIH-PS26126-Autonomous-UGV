@@ -5,13 +5,18 @@ extends Node
 # Represents front-facing camera AI module
 # Scans forward sector, classifies obstacles, and estimates distances.
 
-@export var max_detection_range: float = 9.0
-@export var field_of_view_deg: float = 70.0
+@export var max_detection_range: float = 48.0
+@export var field_of_view_deg: float = 54.0
 @export var ray_count: int = 9
+@export var lane_half_width: float = 2.8
 
 var active: bool = true
 var nearest_obstacle_type: String = "NONE"
 var nearest_obstacle_dist: float = 999.0
+var nearest_obstacle_position: Vector3 = Vector3.ZERO
+var front_obstacle_type: String = "NONE"
+var front_obstacle_dist: float = 999.0
+var front_obstacle_position: Vector3 = Vector3.ZERO
 var current_risk: String = "LOW"
 var is_front_blocked: bool = false
 var detected_obstacles: Array[Dictionary] = []
@@ -29,6 +34,10 @@ func scan_environment(world_space: PhysicsDirectSpaceState3D, obstacle_manager: 
 	detected_obstacles.clear()
 	nearest_obstacle_dist = 999.0
 	nearest_obstacle_type = "NONE"
+	nearest_obstacle_position = Vector3.ZERO
+	front_obstacle_type = "NONE"
+	front_obstacle_dist = 999.0
+	front_obstacle_position = Vector3.ZERO
 	is_front_blocked = false
 
 	var ugv_pos: Vector3 = ugv.global_position
@@ -47,7 +56,7 @@ func scan_environment(world_space: PhysicsDirectSpaceState3D, obstacle_manager: 
 
 		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_start, ray_end)
 		query.exclude = [ugv.get_rid()]
-		query.collide_with_areas = true
+		query.collide_with_areas = false
 		query.collide_with_bodies = true
 		
 		var result: Dictionary = world_space.intersect_ray(query)
@@ -65,8 +74,6 @@ func scan_environment(world_space: PhysicsDirectSpaceState3D, obstacle_manager: 
 				obj_type = "ROCK"
 			elif hit_collider != null and hit_collider.name.contains("Boulder"):
 				obj_type = "BOULDER"
-			elif hit_collider != null and hit_collider.name.contains("Ditch"):
-				obj_type = "DITCH"
 			elif hit_collider != null and hit_collider.name.contains("Blocked"):
 				obj_type = "BLOCKED AREA"
 
@@ -80,21 +87,39 @@ func scan_environment(world_space: PhysicsDirectSpaceState3D, obstacle_manager: 
 			if dist < nearest_obstacle_dist:
 				nearest_obstacle_dist = dist
 				nearest_obstacle_type = obj_type
+				nearest_obstacle_position = hit_pos
 
-			# If center rays (between -20 and +20 deg) hit obstacle within close distance
-			if absf(angle_deg) <= 20.0 and dist <= 3.2:
+			var relative := hit_pos - ugv_pos
+			var forward_dist := relative.dot(forward)
+			var lateral_dist := (relative - forward * forward_dist).length()
+			# A ray only blocks the route when the hit lies inside the vehicle's
+			# swept lane. Sidewalks, shopfronts, and parallel traffic stay informational.
+			if absf(angle_deg) <= 8.0 and forward_dist > 0.0 and lateral_dist <= lane_half_width and forward_dist <= 30.0:
 				is_front_blocked = true
+				if dist < front_obstacle_dist:
+					front_obstacle_dist = dist
+					front_obstacle_type = obj_type
+					front_obstacle_position = hit_pos
 
 	# 2. Also check dynamic obstacles and terrain hazards registered in obstacle manager
 	if obstacle_manager != null and obstacle_manager.has_method("get_obstacles_in_cone"):
 		var cone_items: Array = obstacle_manager.get_obstacles_in_cone(ugv_pos, forward, max_detection_range, half_fov)
 		for item in cone_items:
 			var item_dist: float = float(item["distance"])
+			var item_position: Vector3 = item["position"]
 			if item_dist < nearest_obstacle_dist:
 				nearest_obstacle_dist = item_dist
 				nearest_obstacle_type = str(item["type"])
-			if item_dist <= 3.2:
+				nearest_obstacle_position = item_position
+			var relative := item_position - ugv_pos
+			var forward_dist := relative.dot(forward)
+			var lateral_dist := (relative - forward * forward_dist).length()
+			if forward_dist > 0.0 and forward_dist < 30.0 and lateral_dist <= lane_half_width:
 				is_front_blocked = true
+				if forward_dist < front_obstacle_dist:
+					front_obstacle_dist = forward_dist
+					front_obstacle_type = str(item["type"])
+					front_obstacle_position = item_position
 
 	# 3. Determine current risk category
 	if nearest_obstacle_dist > 6.0:

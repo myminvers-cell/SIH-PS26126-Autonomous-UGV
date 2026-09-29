@@ -59,6 +59,12 @@ theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
 theme_override_font_sizes/font_size = 14
 text = "SIH PS 26126 PROTOTYPE"
 
+[node name="FPSLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "FPS: --"
+
 [node name="LeftPanel" type="PanelContainer" parent="."]
 offset_left = 12.0
 offset_top = 52.0
@@ -190,7 +196,7 @@ text = "Position:"
 [node name="PosVal" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
-text = "X: -24.0 | Z: -24.0"
+text = "X: 6.3 | Z: -600.0"
 
 [node name="HeadingLabel" type="Label" parent="LeftPanel/VBox/TelemetrySection"]
 layout_mode = 2
@@ -273,7 +279,7 @@ theme_override_constants/separation = 4
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 12
-text = "TOP-DOWN COST MAP"
+text = "LIVE SIMULATION MAP"
 horizontal_alignment = 1
 
 [node name="CostMapContainer" type="CenterContainer" parent="RightPanel/VBox"]
@@ -288,7 +294,7 @@ script = ExtResource("2_costmap")
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
 theme_override_font_sizes/font_size = 9
-text = "■ Safe  ■ Uncertain  ■ Blocked"
+text = "Roads  ·  Buildings  ·  Traffic  ·  UGV  ·  Hazards"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="RightPanel/VBox"]
@@ -350,12 +356,6 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
 text = "⏹ STOP"
 
-[node name="BtnSpawn" type="Button" parent="BottomBar/HBox"]
-custom_minimum_size = Vector2(150, 32)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
-text = "⚠ SPAWN OBSTACLE"
-
 [node name="BtnReplan" type="Button" parent="BottomBar/HBox"]
 custom_minimum_size = Vector2(130, 32)
 layout_mode = 2
@@ -366,6 +366,12 @@ text = "⟳ FORCE REPLAN"
 custom_minimum_size = Vector2(90, 32)
 layout_mode = 2
 text = "↺ RESET"
+
+[node name="BtnSpawnObstacle" type="Button" parent="BottomBar/HBox"]
+custom_minimum_size = Vector2(145, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.25, 1)
+text = "+ SPAWN OBSTACLE"
 
 [node name="BtnMode" type="Button" parent="BottomBar/HBox"]
 custom_minimum_size = Vector2(120, 32)

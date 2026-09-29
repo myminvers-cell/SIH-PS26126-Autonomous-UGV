@@ -1,64 +1,75 @@
-# SIH PS 26126: Vision Based Autonomous Navigation for UGV
+# SIH PS 26126: Vision Based Autonomous UGV Navigation
 
-This is a **Demonstration Prototype** for the Smart India Hackathon (SIH) Problem Statement **26126**:
-*"Vision Based Autonomous Navigation for Unmanned Ground Vehicle for Outdoor environment"*
+A Godot 4 3D driving and navigation prototype for the Smart India Hackathon problem statement **26126**. The scene combines autonomous UGV navigation with an Indian left-hand-drive road environment.
 
-## Overview
+## World and gameplay
 
-This project provides a complete, lightweight 3D simulation of an autonomous Unmanned Ground Vehicle (UGV) designed to run on low-end hardware without requiring a dedicated GPU or external frameworks like ROS. It simulates:
-- **Simulated Visual Odometry** (GPS-denied localization).
-- **Environment Perception** using multi-ray forward scanning for obstacle detection.
-- **Cost Map-Based Path Planning** with 8-directional A* algorithm.
-- **Dynamic Replanning** and **Stuck Recovery** behaviors.
+- A **1.2 km route** through a **1.28 km × 256 m** playable map.
+- A broad, one-way **four-lane highway** with left-hand traffic, five town junctions, connecting service roads, and moving cross traffic.
+- Procedural Indian-style shopfronts, bus shelters, streetlights, road signs, lane paint, and reflective road materials.
+- Moving cars, buses, delivery trucks, auto-rickshaws, motorcycles, and pedestrians. Traffic follows Indian left-hand-drive lanes, leaves safe gaps, yields at junctions, and uses the right-hand lane to pass. Vehicle impacts stop and visibly damage traffic cars; wrecks remain as hazards for the UGV and other traffic.
+- A* route planning, simulated vision sensing, localization, collision-aware motion, traffic bypassing, and recovery behavior for the UGV.
 
-## System Requirements
-- **OS**: Windows (64-bit)
-- **CPU**: Intel Core i5-4440S or better
-- **RAM**: 8 GB
-- **GPU**: Intel HD Graphics 4600 (or any GPU supporting OpenGL 3.3 / Compatibility mode)
-- **Software**: Godot Engine 4.x (Tested on 4.7.2)
+## System requirements
 
-> **Note**: This prototype is entirely self-contained. It does **not** require CUDA, YOLO, ROS, MATLAB, or Simulink.
+These are **estimated targets** for the current GL Compatibility renderer and procedural scene. Actual frame rate depends on drivers and background applications.
 
-## How to Run
-1. Ensure you have [Godot Engine 4.7.2](https://godotengine.org/download/) installed (or you can use the provided `godot.exe` if present in the project folder).
-2. Double-click the `run.bat` or `run_prototype.bat` script to launch the simulation.
-   - Alternatively, open the project in Godot Engine and press **F5** to run the `Main.tscn` scene.
+| Target | CPU | Memory | Graphics | Resolution and frame rate |
+|---|---|---:|---|---|
+| Minimum | Modern 4-core x64 CPU, 3.0 GHz class | 8 GB RAM | OpenGL 3.3 compatible GPU, integrated or discrete, with 2 GB graphics memory or shared equivalent | 1280×720, low settings, target 30 FPS |
+| Recommended | Modern 6-core x64 CPU, 3.5 GHz class | 16 GB RAM | Discrete GPU in the GTX 1650 / RX 6400 performance class or better, 4 GB VRAM | 1920×1080, medium settings, target 60 FPS |
 
-## Architecture & Modules
+**Development:** Godot Engine 4.7.2. Standalone game builds include the runtime and project resources, so players do not need Godot installed.
 
-| Module | Script | Description |
+## Run
+
+1. Run `run.bat` or `run_prototype.bat`, or open the project in Godot.
+2. Press **F5** to start the main scene.
+3. Press **START AUTONOMY** to drive the route, or select manual mode and use **W/A/S/D** or the arrow keys.
+
+## Standalone game builds
+
+- **Windows:** Run `builds/windows/SIH UGV.exe`. It is a single self-contained executable with the project data embedded; Godot is not required on the target PC.
+- **Rebuild:** Run `build_game.ps1` from this project folder. Building requires Godot 4.7.2 and its matching Windows export template installed on the build PC. The packaged game itself has no Godot installation requirement.
+
+## Add a custom road texture
+
+Place seamless road maps in `assets/textures/road/` using these exact filenames:
+
+| File | Map | Required |
 |---|---|---|
-| **UGV** | `UGV.gd` | Handles physical movement, state machine (NAVIGATING, AVOIDING, etc.), stuck recovery. |
-| **A* Planner** | `AStarPlanner.gd` | Computes the optimal path from A to B considering terrain cost and obstacles. |
-| **Cost Map** | `CostMap.gd` | 60x60 grid representation of the environment, used by the planner. |
-| **Perception** | `Perception.gd` | AI simulated forward camera; scans for obstacles and determines distance/type. |
-| **Localization** | `Localization.gd` | Simulates odometry to estimate position without GPS. |
-| **Obstacle Manager** | `ObstacleManager.gd` | Handles procedural environment generation and dynamic obstacle spawning. |
+| `road_albedo.jpg` | Asphalt color/base color (sRGB) | Optional; a dark asphalt color is used if absent |
+| `road_normal.png` | Tangent-space normal map (OpenGL, +Y green channel) | Optional |
+| `road_roughness.png` | Roughness, white = rough and black = smooth | Optional |
+
+The road uses world-space shader sampling and repeats the texture every 9 metres, so it does not depend on mesh UVs. Texture loading uses Godot's resource system first (including in standalone exports) and falls back to the source image while developing. Add `road_albedo.jpg` first for a simple replacement; add the normal and roughness maps for extra surface depth and reflections. Keep these maps in JPG or PNG format. After adding or replacing textures, let Godot finish importing before running or exporting the project.
 
 ## Controls
 
-| Action | Control / UI Element |
+| Action | Control |
 |---|---|
-| **Toggle Autonomy** | `MODE` Button |
-| **Start Navigation** | `START AUTONOMY` Button |
-| **Stop Navigation** | `STOP` Button |
-| **Inject Obstacle** | `SPAWN OBSTACLE` Button (spawns an obstacle in the UGV's path) |
-| **Force Replan** | `FORCE REPLAN` Button |
-| **Reset Scenario** | `RESET SCENARIO` Button |
-| **Manual Drive** | `W, A, S, D` or `Arrow Keys` (only when in MANUAL mode) |
-| **Change Camera** | `Camera Mode` Dropdown (Chase, Front, Top-Down) |
+| Start autonomous driving | **START AUTONOMY** or **Space** |
+| Stop | **STOP** |
+| Manual / autonomous mode | **MODE** |
+| Manual driving | **W/A/S/D** or arrow keys in manual mode |
+| Force route recalculation | **FORCE REPLAN** |
+| Reset route | **RESET** or **R** |
+| Chase, front, top-down camera | Camera buttons or **1/2/3** |
 
-## Demonstration Flow
-1. The UGV starts at **Point A**.
-2. An initial route is calculated to **Point B** through a field of rocks, trees, and ditches.
-3. Once **START AUTONOMY** is pressed, the UGV follows the path.
-4. Clicking **SPAWN OBSTACLE** injects a dynamic red obstacle directly into the UGV's path.
-5. The **Perception** system detects the blockage, stops the UGV, and triggers **REPLANNING**.
-6. A new route is calculated, and the UGV successfully maneuvers around the obstacle to reach **Point B**.
+## Architecture
+
+| Module | Script | Purpose |
+|---|---|---|
+| UGV | `scripts/UGV.gd` | Vehicle physics, steering, collision response, traffic bypass, and navigation state machine. |
+| A* planner | `scripts/AStarPlanner.gd` | Plans over the rectangular long-distance cost map. |
+| Cost map | `scripts/CostMap.gd` | 64 × 320 cells at 4 m resolution, covering 256 m × 1280 m. |
+| Traffic AI | `scripts/TrafficManager.gd` | Moving road users, lane following, safe-gap control, passing, and junction yielding. |
+| Road and town | `scripts/RoadVisuals.gd` | Highway, service roads, junctions, buildings, lighting, materials, and reflection probes. |
+| Perception | `scripts/Perception.gd` | Forward ray sensing and dynamic road-user detection. |
+| Main scene | `scripts/Main.gd` | World setup, bounds, route, and subsystem connections. |
+
+The project uses Godot's GL Compatibility renderer for wider hardware support, procedural PBR-style materials, and one-time local reflection probes of the static city and sky. It does not enable ray/path tracing or live screen-space reflections; Godot's built-in SSR is limited to Forward+, which needs a RenderingDevice-compatible graphics driver. It does not require CUDA, ROS, MATLAB, or Simulink.
 
 ## Disclaimer
-This is a **Demonstration Prototype** designed solely to illustrate the conceptual logic of vision-based navigation, pathfinding, and obstacle avoidance. It is not a production UGV system.
 
-## License
-MIT License
+This project is a demonstration prototype. Its simulated perception and navigation are not intended for real-world vehicle control.

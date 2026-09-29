@@ -8,8 +8,8 @@ var line_material: StandardMaterial3D
 var beacon_a: Node3D
 var beacon_b: Node3D
 
-var point_a: Vector3 = Vector3(-24.0, 0.4, -24.0)
-var point_b: Vector3 = Vector3(24.0, 0.4, 24.0)
+var point_a: Vector3 = Vector3(6.3, 0.4, -600.0)
+var point_b: Vector3 = Vector3(6.3, 0.4, 600.0)
 
 func _ready() -> void:
 	line_material = StandardMaterial3D.new()

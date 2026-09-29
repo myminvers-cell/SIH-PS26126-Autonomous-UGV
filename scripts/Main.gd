@@ -3,6 +3,7 @@ extends Node3D
 
 @onready var ugv: UGV = $UGV
 @onready var obstacle_manager: ObstacleManager = $ObstacleManager
+@onready var traffic_manager: TrafficManager = $TrafficManager
 @onready var perception: Perception = $Perception
 @onready var path_visualizer: PathVisualizer = $PathVisualizer
 @onready var main_camera: CameraFollow = $MainCamera
@@ -12,27 +13,100 @@ var cost_map: CostMap
 var astar_planner: AStarPlanner
 var localization: Localization
 
-const POINT_A: Vector3 = Vector3(-24.0, 0.0, -24.0)
-const POINT_B: Vector3 = Vector3(24.0, 0.0, 24.0)
+const WORLD_WIDTH := 256.0
+const WORLD_LENGTH := 1280.0
+const HIGHWAY_LEFT_LANE_X := 6.3
+const POINT_A: Vector3 = Vector3(HIGHWAY_LEFT_LANE_X, 0.0, -600.0)
+const POINT_B: Vector3 = Vector3(HIGHWAY_LEFT_LANE_X, 0.0, 600.0)
+var _ui_refresh_timer := 0.0
 
 func _ready() -> void:
+	Engine.max_fps = 60
+	_apply_realtime_sky()
+	_apply_terrain_texture()
 	_create_boundary_walls()
 	_setup_core_systems()
 	_connect_signals()
 	_initialize_scenario()
 
+func _apply_realtime_sky() -> void:
+	var shader := Shader.new()
+	shader.code = """
+	shader_type sky;
+	render_mode use_debanding;
+
+	uniform vec3 zenith_color : source_color = vec3(0.10, 0.22, 0.43);
+	uniform vec3 horizon_color : source_color = vec3(0.72, 0.79, 0.84);
+	uniform vec3 sun_direction = vec3(0.35, 0.7, 0.61);
+
+	float hash21(vec2 p) {
+		p = fract(p * vec2(127.1, 311.7));
+		p += dot(p, p + 19.19);
+		return fract(p.x * p.y);
+	}
+
+	float noise21(vec2 p) {
+		vec2 i = floor(p);
+		vec2 f = fract(p);
+		f = f * f * (3.0 - 2.0 * f);
+		return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+			mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+	}
+
+	void sky() {
+		vec3 direction = normalize(EYEDIR);
+		float sky_height = clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
+		vec3 color = mix(horizon_color, zenith_color, pow(sky_height, 0.85));
+		vec2 cloud_uv = direction.xz / max(direction.y + 0.24, 0.07);
+		float cloud_mask = smoothstep(0.57, 0.73, noise21(cloud_uv * 1.55 + vec2(3.1, 8.4)));
+		cloud_mask *= smoothstep(-0.04, 0.2, direction.y) * (1.0 - smoothstep(0.68, 0.91, direction.y));
+		color = mix(color, vec3(0.88, 0.91, 0.93), cloud_mask * 0.72);
+		float sun_dot = max(dot(direction, normalize(sun_direction)), 0.0);
+		float sun_disk = pow(sun_dot, 420.0);
+		float sun_glow = pow(sun_dot, 34.0) * 0.16;
+		color += vec3(1.0, 0.72, 0.43) * (sun_disk * 1.8 + sun_glow);
+		COLOR = color;
+	}
+	"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("sun_direction", $Sun.global_transform.basis.z.normalized())
+	var sky := Sky.new()
+	sky.sky_material = material
+	sky.process_mode = 0
+	$WorldEnvironment.environment.sky = sky
+
 func _create_boundary_walls() -> void:
-	var concrete := StandardMaterial3D.new()
-	concrete.albedo_color = Color(0.19, 0.23, 0.27)
-	concrete.roughness = 0.78
+	var concrete := ShaderMaterial.new()
+	var wall_shader := Shader.new()
+	wall_shader.code = """
+	shader_type spatial;
+
+	float hash21(vec2 p) {
+		p = fract(p * vec2(127.1, 311.7));
+		p += dot(p, p + 19.19);
+		return fract(p.x * p.y);
+	}
+
+	void fragment() {
+		vec2 p = UV * vec2(58.0, 7.0);
+		float grain = hash21(floor(p * 4.0));
+		float stain = hash21(floor(p * 0.38));
+		float seam = smoothstep(0.01, 0.035, abs(fract(UV.y * 9.0) - 0.5));
+		vec3 concrete = vec3(0.17, 0.20, 0.22) + vec3(grain * 0.07 + stain * 0.09);
+		ALBEDO = concrete * mix(0.75, 1.0, seam);
+		ROUGHNESS = 0.9;
+	}
+	"""
+	concrete.shader = wall_shader
 	var warning_paint := StandardMaterial3D.new()
 	warning_paint.albedo_color = Color(0.95, 0.55, 0.12)
 	warning_paint.roughness = 0.5
 	var wall_specs: Array[Dictionary] = [
-		{"name": "NorthWall", "pos": Vector3(0.0, 1.6, -39.35), "size": Vector3(80.0, 3.2, 1.0), "stripe": Vector3(80.0, 0.16, 0.04), "stripe_pos": Vector3(0.0, 2.45, -38.82)},
-		{"name": "SouthWall", "pos": Vector3(0.0, 1.6, 39.35), "size": Vector3(80.0, 3.2, 1.0), "stripe": Vector3(80.0, 0.16, 0.04), "stripe_pos": Vector3(0.0, 2.45, 38.82)},
-		{"name": "WestWall", "pos": Vector3(-39.35, 1.6, 0.0), "size": Vector3(1.0, 3.2, 80.0), "stripe": Vector3(0.04, 0.16, 80.0), "stripe_pos": Vector3(-38.82, 2.45, 0.0)},
-		{"name": "EastWall", "pos": Vector3(39.35, 1.6, 0.0), "size": Vector3(1.0, 3.2, 80.0), "stripe": Vector3(0.04, 0.16, 80.0), "stripe_pos": Vector3(38.82, 2.45, 0.0)}
+		{"name": "NorthWall", "pos": Vector3(0.0, 1.6, -639.35), "size": Vector3(WORLD_WIDTH, 3.2, 1.0), "stripe": Vector3(WORLD_WIDTH, 0.16, 0.04), "stripe_pos": Vector3(0.0, 2.45, -638.82)},
+		{"name": "SouthWall", "pos": Vector3(0.0, 1.6, 639.35), "size": Vector3(WORLD_WIDTH, 3.2, 1.0), "stripe": Vector3(WORLD_WIDTH, 0.16, 0.04), "stripe_pos": Vector3(0.0, 2.45, 638.82)},
+		{"name": "WestWall", "pos": Vector3(-127.35, 1.6, 0.0), "size": Vector3(1.0, 3.2, WORLD_LENGTH), "stripe": Vector3(0.04, 0.16, WORLD_LENGTH), "stripe_pos": Vector3(-126.82, 2.45, 0.0)},
+		{"name": "EastWall", "pos": Vector3(127.35, 1.6, 0.0), "size": Vector3(1.0, 3.2, WORLD_LENGTH), "stripe": Vector3(0.04, 0.16, WORLD_LENGTH), "stripe_pos": Vector3(126.82, 2.45, 0.0)}
 	]
 	for spec in wall_specs:
 		var wall := StaticBody3D.new()
@@ -59,6 +133,40 @@ func _create_boundary_walls() -> void:
 		wall.add_child(stripe)
 		add_child(wall)
 
+func _apply_terrain_texture() -> void:
+	var material := ShaderMaterial.new()
+	var ground_shader := Shader.new()
+	ground_shader.code = """
+	shader_type spatial;
+
+	float hash21(vec2 p) {
+		p = fract(p * vec2(127.1, 311.7));
+		p += dot(p, p + 19.19);
+		return fract(p.x * p.y);
+	}
+
+	float noise21(vec2 p) {
+		vec2 i = floor(p);
+		vec2 f = fract(p);
+		f = f * f * (3.0 - 2.0 * f);
+		return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
+			mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+	}
+
+	void fragment() {
+		vec2 p = UV * vec2(72.0, 360.0);
+		float patches = hash21(floor(UV * vec2(4.0, 18.0)));
+		float blades = hash21(floor(p * 3.0));
+		float dust = hash21(floor(p * 0.22));
+		vec3 grass = mix(vec3(0.16, 0.19, 0.13), vec3(0.31, 0.29, 0.18), patches);
+		ALBEDO = grass * (0.82 + blades * 0.22) + vec3(dust * 0.025);
+		ROUGHNESS = 0.96;
+	}
+	"""
+	material.shader = ground_shader
+	var ground: MeshInstance3D = $Terrain/Ground
+	ground.material_override = material
+
 func _setup_core_systems() -> void:
 	cost_map = CostMap.new()
 	astar_planner = AStarPlanner.new(cost_map)
@@ -66,10 +174,13 @@ func _setup_core_systems() -> void:
 
 	perception.setup(ugv)
 	obstacle_manager.populate_environment(cost_map)
+	traffic_manager.setup(obstacle_manager, ugv)
+	ugv.traffic_manager = traffic_manager
 
 	ugv.start_position = POINT_A
 	ugv.goal_position  = POINT_B
 	ugv.global_position = POINT_A
+	ugv.rotation.y = PI
 	ugv.initialize_subsystems(astar_planner, cost_map, localization, perception, obstacle_manager)
 
 	path_visualizer.point_a = POINT_A
@@ -77,6 +188,8 @@ func _setup_core_systems() -> void:
 
 	hud.cost_map_widget.point_a = POINT_A
 	hud.cost_map_widget.point_b = POINT_B
+	hud.cost_map_widget.traffic_manager = traffic_manager
+	hud.cost_map_widget.road_visuals = $RoadVisuals
 	hud.cost_map_widget.setup(cost_map)
 
 	main_camera.target = ugv
@@ -85,8 +198,8 @@ func _setup_core_systems() -> void:
 func _connect_signals() -> void:
 	hud.start_autonomy_pressed.connect(func(): ugv.start_autonomy())
 	hud.stop_pressed.connect(func(): ugv.stop_ugv())
-	hud.spawn_obstacle_pressed.connect(_on_spawn_obstacle_pressed)
 	hud.force_replan_pressed.connect(func(): ugv.force_replan())
+	hud.spawn_obstacle_pressed.connect(_on_spawn_obstacle_pressed)
 	hud.reset_pressed.connect(_on_reset_scenario)
 	hud.mode_toggle_pressed.connect(func(): ugv.toggle_mode())
 	hud.camera_mode_changed.connect(_on_camera_mode_changed)
@@ -115,13 +228,10 @@ func _initialize_scenario() -> void:
 		hud.cost_map_widget.set_active_path(initial_path)
 
 func _process(_delta: float) -> void:
-	# Continuously redraw the remaining path from UGV's current waypoint onward
-	if ugv.current_path.size() > 0 and ugv.current_state != UGV.NavState.GOAL_REACHED:
-		var remaining: Array[Vector3] = []
-		for i in range(ugv.waypoint_index, ugv.current_path.size()):
-			remaining.append(ugv.current_path[i])
-		path_visualizer.draw_path(remaining, ugv.global_position)
-
+	_ui_refresh_timer -= _delta
+	if _ui_refresh_timer > 0.0:
+		return
+	_ui_refresh_timer = 0.08
 	hud.cost_map_widget.update_ugv_state(ugv.global_position, ugv.rotation_degrees.y)
 
 	# UI telemetry
@@ -143,15 +253,15 @@ func _process(_delta: float) -> void:
 	)
 
 func _on_spawn_obstacle_pressed() -> void:
+	# Spawn in the UGV's active route so the obstacle control remains useful for
+	# testing perception and replanning.
 	var spawn_pos: Vector3
 	if ugv.current_path.size() > 0 and ugv.waypoint_index < ugv.current_path.size():
-		# Place 4 waypoints ahead of current position
 		var ahead_idx: int = mini(ugv.waypoint_index + 4, ugv.current_path.size() - 1)
 		spawn_pos = ugv.current_path[ahead_idx]
 	else:
 		var fwd: Vector3 = -ugv.global_transform.basis.z.normalized()
 		spawn_pos = ugv.global_position + fwd * 5.0
-
 	spawn_pos.y = 1.15
 	obstacle_manager.spawn_dynamic_obstacle(spawn_pos, cost_map)
 	hud.cost_map_widget.refresh_map()
@@ -173,6 +283,7 @@ func _on_reset_scenario() -> void:
 
 	cost_map.clear()
 	obstacle_manager.populate_environment(cost_map)
+	traffic_manager.refresh_obstacle_registrations()
 
 	ugv.reset_ugv()
 	hud.cost_map_widget.refresh_map()
