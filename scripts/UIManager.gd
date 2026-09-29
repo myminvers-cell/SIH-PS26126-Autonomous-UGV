@@ -73,6 +73,16 @@ func _ready() -> void:
 	)
 
 	goal_overlay.visible = false
+	set_camera_mode(0)
+
+func set_camera_mode(mode_idx: int) -> void:
+	var labels := ["CHASE", "FRONT", "TOP-DOWN"]
+	var buttons := [btn_cam_chase, btn_cam_front, btn_cam_top]
+	if mode_idx < 0 or mode_idx >= labels.size():
+		return
+	camera_label.text = labels[mode_idx]
+	for i in range(buttons.size()):
+		buttons[i].modulate = Color(0.3, 0.95, 1.0) if i == mode_idx else Color.WHITE
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed():

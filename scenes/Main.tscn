@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://cm41nscene001"]
+[gd_scene load_steps=18 format=3 uid="uid://cm41nscene001"]
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/UGV.tscn" id="2_ugv"]
@@ -7,15 +7,17 @@
 [ext_resource type="Script" path="res://scripts/PathVisualizer.gd" id="5_pathvis"]
 [ext_resource type="Script" path="res://scripts/CameraFollow.gd" id="6_cam"]
 [ext_resource type="PackedScene" path="res://scenes/UI/HUD.tscn" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/RoadVisuals.gd" id="8_road"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
-sky_top_color = Color(0.22, 0.28, 0.42, 1)
-sky_horizon_color = Color(0.62, 0.68, 0.78, 1)
-sky_curve = 0.12
-ground_bottom_color = Color(0.18, 0.2, 0.16, 1)
-ground_horizon_color = Color(0.42, 0.44, 0.38, 1)
-ground_curve = 0.08
-sun_angle_max = 40.0
+sky_top_color = Color(0.10, 0.22, 0.43, 1)
+sky_horizon_color = Color(0.74, 0.81, 0.88, 1)
+sky_curve = 0.22
+ground_bottom_color = Color(0.18, 0.22, 0.21, 1)
+ground_horizon_color = Color(0.48, 0.51, 0.48, 1)
+ground_curve = 0.12
+sun_angle_max = 7.0
+sun_curve = 0.18
 
 [sub_resource type="Sky" id="Sky_scene"]
 sky_material = SubResource("ProceduralSkyMaterial_1")
@@ -33,6 +35,10 @@ fog_light_energy = 1.0
 fog_sun_scatter = 0.5
 fog_density = 0.006
 fog_aerial_perspective = 0.3
+glow_enabled = true
+glow_intensity = 0.35
+glow_strength = 0.55
+tonemap_mode = 2
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
 albedo_color = Color(0.24, 0.27, 0.20, 1)
@@ -42,10 +48,10 @@ normal_enabled = false
 
 [sub_resource type="BoxMesh" id="BoxMesh_ground"]
 material = SubResource("StandardMaterial3D_ground")
-size = Vector3(60, 0.4, 60)
+size = Vector3(80, 0.4, 80)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_ground"]
-size = Vector3(60, 0.4, 60)
+size = Vector3(80, 0.4, 80)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_border"]
 albedo_color = Color(0.18, 0.20, 0.16, 1)
@@ -53,7 +59,7 @@ roughness = 0.95
 
 [sub_resource type="BoxMesh" id="BoxMesh_border"]
 material = SubResource("StandardMaterial3D_border")
-size = Vector3(62, 0.3, 62)
+size = Vector3(84, 0.3, 84)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_goal_glow"]
 albedo_color = Color(0.15, 0.85, 0.35, 1)
@@ -66,8 +72,8 @@ shading_mode = 2
 material = SubResource("StandardMaterial3D_goal_glow")
 inner_radius = 0.6
 outer_radius = 1.2
-ring_segments = 20
-section_segments = 6
+ring_segments = 32
+rings = 8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_goal_gold"]
 albedo_color = Color(1.0, 0.85, 0.1, 1)
@@ -80,8 +86,8 @@ shading_mode = 2
 material = SubResource("StandardMaterial3D_goal_gold")
 inner_radius = 0.6
 outer_radius = 1.2
-ring_segments = 20
-section_segments = 6
+ring_segments = 32
+rings = 8
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -93,7 +99,7 @@ environment = SubResource("Environment_main")
 transform = Transform3D(0.866025, -0.353553, 0.353553, 0, 0.707107, 0.707107, -0.5, -0.612372, 0.612372, 10, 20, 10)
 light_color = Color(1.0, 0.96, 0.88, 1)
 light_energy = 1.4
-shadow_enabled = false
+shadow_enabled = true
 
 [node name="AmbientFill" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, 0.353, -0.354, 0, 0.707, 0.707, 0.5, -0.612, 0.612, -10, 15, 10)
@@ -116,6 +122,7 @@ shape = SubResource("BoxShape3D_ground")
 
 [node name="PointA_Ring" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.22, -24)
+rotation = Vector3(1.570796, 0, 0)
 mesh = SubResource("TorusMesh_ring_a")
 
 [node name="PointA_Light" type="OmniLight3D" parent="."]
@@ -127,6 +134,7 @@ shadow_enabled = false
 
 [node name="PointB_Ring" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.22, 24)
+rotation = Vector3(1.570796, 0, 0)
 mesh = SubResource("TorusMesh_ring_b")
 
 [node name="PointB_Light" type="OmniLight3D" parent="."]
@@ -139,6 +147,9 @@ shadow_enabled = false
 [node name="ObstacleManager" type="Node3D" parent="."]
 script = ExtResource("3_obsmgr")
 
+[node name="RoadVisuals" type="Node3D" parent="."]
+script = ExtResource("8_road")
+
 [node name="Perception" type="Node" parent="."]
 script = ExtResource("4_perc")
 
@@ -146,7 +157,7 @@ script = ExtResource("4_perc")
 script = ExtResource("5_pathvis")
 
 [node name="UGV" parent="." instance=ExtResource("2_ugv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.4, -24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, -24)
 
 [node name="MainCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.866025, 0.5, 0, -0.5, 0.866025, -24, 5, -18)

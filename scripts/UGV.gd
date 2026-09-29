@@ -37,8 +37,8 @@ var obstacle_manager: ObstacleManager
 
 var current_path: Array[Vector3] = []
 var waypoint_index: int = 0
-var goal_position: Vector3 = Vector3(24.0, 0.4, 24.0)
-var start_position: Vector3 = Vector3(-24.0, 0.4, -24.0)
+var goal_position: Vector3 = Vector3(24.0, 0.0, 24.0)
+var start_position: Vector3 = Vector3(-24.0, 0.0, -24.0)
 
 var current_speed: float = 0.0
 var replans_count: int = 0
@@ -49,6 +49,8 @@ var _stuck_timer: float = 0.0
 var _last_check_pos: Vector3 = Vector3.ZERO
 var _recovery_timer: float = 0.0
 var _replan_cooldown: float = 0.0
+var _pothole_cooldown: float = 0.0
+var _vertical_speed: float = 0.0
 
 # Headlight node
 var _headlight: OmniLight3D
@@ -124,6 +126,8 @@ func _physics_process(delta: float) -> void:
 
 	if _replan_cooldown > 0.0:
 		_replan_cooldown -= delta
+	if _pothole_cooldown > 0.0:
+		_pothole_cooldown -= delta
 
 	if is_autonomous:
 		_process_autonomous(delta)
@@ -137,7 +141,7 @@ func _process_autonomous(delta: float) -> void:
 		NavState.STOPPED:
 			current_speed = move_toward(current_speed, 0.0, deceleration * delta)
 			velocity = Vector3.ZERO
-			move_and_slide()
+			_move_with_gravity(delta)
 
 		NavState.PLANNING:
 			_execute_planning()
@@ -150,8 +154,7 @@ func _process_autonomous(delta: float) -> void:
 			current_speed = move_toward(current_speed, 0.0, deceleration * 2.0 * delta)
 			var fwd: Vector3 = -global_transform.basis.z.normalized()
 			velocity = fwd * current_speed
-			velocity.y = -9.8 * delta
-			move_and_slide()
+			_move_with_gravity(delta)
 			if current_speed <= 0.15:
 				set_state(NavState.REPLANNING)
 
@@ -164,7 +167,7 @@ func _process_autonomous(delta: float) -> void:
 		NavState.GOAL_REACHED:
 			current_speed = move_toward(current_speed, 0.0, deceleration * delta)
 			velocity = Vector3.ZERO
-			move_and_slide()
+			_move_with_gravity(delta)
 
 func _execute_planning() -> void:
 	if astar_planner == null:
@@ -256,8 +259,7 @@ func _process_navigation(delta: float) -> void:
 	current_speed = move_toward(current_speed, target_speed, acceleration * delta)
 	var fwd: Vector3 = -global_transform.basis.z.normalized()
 	velocity = fwd * current_speed
-	velocity.y = -9.8 * delta
-	move_and_slide()
+	_move_with_gravity(delta)
 
 	# ── 6. Collision flagging ──────────────────────────────────────────────
 	for i in range(get_slide_collision_count()):
@@ -284,8 +286,7 @@ func _process_recovery(delta: float) -> void:
 	rotation.y += 1.8 * delta
 	var fwd: Vector3 = -global_transform.basis.z.normalized()
 	velocity = fwd * current_speed
-	velocity.y = -9.8 * delta
-	move_and_slide()
+	_move_with_gravity(delta)
 	if _recovery_timer <= 0.0:
 		current_speed = 0.0
 		var gp: Vector2i = cost_map.world_to_grid(global_position)
@@ -314,8 +315,25 @@ func _process_manual(delta: float) -> void:
 
 	var fwd: Vector3 = -global_transform.basis.z.normalized()
 	velocity = fwd * current_speed
-	velocity.y = -9.8 * delta
+	_move_with_gravity(delta)
+
+func _move_with_gravity(delta: float) -> void:
+	if is_on_floor():
+		if _vertical_speed < 0.0:
+			_vertical_speed = 0.0
+	else:
+		_vertical_speed -= 18.0 * delta
+	velocity.y = _vertical_speed
 	move_and_slide()
+	if is_on_floor() and _vertical_speed < 0.0:
+		_vertical_speed = 0.0
+
+func apply_pothole_impact() -> void:
+	if _pothole_cooldown > 0.0:
+		return
+	_pothole_cooldown = 0.7
+	_vertical_speed = maxf(_vertical_speed, 3.3)
+	current_speed = move_toward(current_speed, 0.0, 1.2)
 
 func _animate_wheels(delta: float) -> void:
 	var spin: float = (current_speed / 0.35) * delta
@@ -362,6 +380,8 @@ func reset_ugv() -> void:
 	_replan_cooldown = 0.0
 	_stuck_timer = 0.0
 	_recovery_timer = 0.0
+	_vertical_speed = 0.0
+	_pothole_cooldown = 0.0
 	if localization != null:
 		localization.reset(start_position, 0.0)
 	set_state(NavState.STOPPED)

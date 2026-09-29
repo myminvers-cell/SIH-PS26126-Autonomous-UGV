@@ -1,10 +1,11 @@
 class_name CostMap
 extends RefCounted
 
-# Grid settings: 60m x 60m terrain (-30 to +30)
-const GRID_SIZE: int = 60
+# Grid settings: 80m x 80m terrain (-40 to +40)
+const GRID_SIZE: int = 80
 const CELL_SIZE: float = 1.0
-const HALF_WIDTH: float = 30.0
+const HALF_WIDTH: float = 40.0
+const WALL_CLEARANCE_CELLS: int = 4
 
 # Cell states / costs
 const COST_SAFE: float = 1.0
@@ -29,6 +30,16 @@ func clear() -> void:
 				"type": "SAFE"
 			})
 		grid.append(column)
+	# Keep the route planner inside the physical perimeter walls with room for
+	# the UGV's chassis. The next cell inward is a costly safety buffer.
+	for x in range(GRID_SIZE):
+		for z in range(GRID_SIZE):
+			var edge_distance := mini(mini(x, GRID_SIZE - 1 - x), mini(z, GRID_SIZE - 1 - z))
+			if edge_distance < WALL_CLEARANCE_CELLS:
+				if edge_distance < WALL_CLEARANCE_CELLS - 1:
+					grid[x][z] = {"cost": COST_OBSTACLE, "walkable": false, "type": "BOUNDARY WALL"}
+				else:
+					grid[x][z] = {"cost": COST_UNCERTAIN, "walkable": true, "type": "WALL BUFFER"}
 
 # Convert world Vector3 coordinate to grid coordinates Vector2i
 func world_to_grid(world_pos: Vector3) -> Vector2i:

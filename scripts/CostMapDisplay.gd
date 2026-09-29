@@ -38,7 +38,7 @@ func _update_image_from_costmap() -> void:
 		for z in range(CostMap.GRID_SIZE):
 			var cell_type: String = cost_map.get_cell_type(x, z)
 			var col: Color = Color(0.12, 0.35, 0.15, 0.9) # Safe Green
-			if cell_type == "UNCERTAIN":
+			if cell_type == "UNCERTAIN" or cell_type == "WALL BUFFER":
 				col = Color(0.8, 0.7, 0.1, 0.9) # Uncertain Yellow
 			elif not cost_map.is_walkable(x, z):
 				col = Color(0.85, 0.18, 0.15, 0.95) # Blocked Red
@@ -50,7 +50,7 @@ func _update_image_from_costmap() -> void:
 		_map_texture.update(_map_image)
 
 func _world_to_ui(w_pos: Vector3, rect_size: Vector2) -> Vector2:
-	# World (-30 to +30) -> UI (0 to rect_size)
+	# World (-40 to +40) -> UI (0 to rect_size)
 	var nx: float = (w_pos.x + CostMap.HALF_WIDTH) / float(CostMap.GRID_SIZE * CostMap.CELL_SIZE)
 	var nz: float = (w_pos.z + CostMap.HALF_WIDTH) / float(CostMap.GRID_SIZE * CostMap.CELL_SIZE)
 	return Vector2(nx * rect_size.x, nz * rect_size.y)
@@ -67,7 +67,7 @@ func _draw() -> void:
 		_update_image_from_costmap()
 		_needs_texture_update = false
 
-	# Draw the 60x60 cost map texture stretched to size
+	# Draw the 80x80 cost map texture stretched to size
 	if _map_texture != null:
 		draw_texture_rect(_map_texture, Rect2(Vector2.ZERO, r_size), false)
 

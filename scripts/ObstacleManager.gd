@@ -3,7 +3,7 @@ extends Node3D
 
 signal obstacle_added(pos: Vector3, type_name: String)
 
-@export var terrain_size: float = 60.0
+@export var terrain_size: float = 80.0
 
 var registered_obstacles: Array[Dictionary] = []
 var dynamic_obstacles: Array[Node3D] = []
@@ -16,6 +16,8 @@ var mat_boulder: StandardMaterial3D
 var mat_ditch: StandardMaterial3D
 var mat_blocked: StandardMaterial3D
 var mat_dynamic: StandardMaterial3D
+var mat_pothole: StandardMaterial3D
+var mat_puddle_glint: StandardMaterial3D
 var _materials_ready: bool = false
 
 func _ready() -> void:
@@ -63,6 +65,21 @@ func _init_materials() -> void:
 	mat_dynamic.emission_enabled = true
 	mat_dynamic.emission = Color(1.0, 0.3, 0.1)
 	mat_dynamic.emission_energy_multiplier = 1.5
+
+	mat_pothole = StandardMaterial3D.new()
+	mat_pothole.albedo_color = Color(0.035, 0.055, 0.07)
+	mat_pothole.roughness = 0.12
+	mat_pothole.metallic = 0.72
+	mat_pothole.clearcoat_enabled = true
+	mat_pothole.clearcoat = 0.8
+
+	mat_puddle_glint = StandardMaterial3D.new()
+	mat_puddle_glint.albedo_color = Color(0.27, 0.62, 0.78, 0.82)
+	mat_puddle_glint.roughness = 0.08
+	mat_puddle_glint.metallic = 0.55
+	mat_puddle_glint.emission_enabled = true
+	mat_puddle_glint.emission = Color(0.06, 0.18, 0.26)
+	mat_puddle_glint.emission_energy_multiplier = 0.35
 
 func populate_environment(cost_map: CostMap) -> void:
 	_init_materials()
@@ -128,6 +145,18 @@ func populate_environment(cost_map: CostMap) -> void:
 	]
 	for pos in ditch_positions:
 		_create_ditch(pos, rng.randf_range(2.0, 3.2), cost_map)
+
+	# Shallow road damage is rendered as wet, reflective depressions and remains
+	# traversable at a high planning cost so the UGV prefers to steer around it.
+	var potholes: Array[Dictionary] = [
+		{"pos": Vector3(-17.0, 0.06, -11.8), "radius": 0.78},
+		{"pos": Vector3(-8.8, 0.06, -5.0), "radius": 1.05},
+		{"pos": Vector3(-1.0, 0.06,  1.8), "radius": 0.72},
+		{"pos": Vector3( 6.0, 0.06,  8.7), "radius": 0.95},
+		{"pos": Vector3(14.0, 0.06, 15.7), "radius": 0.82}
+	]
+	for hole in potholes:
+		_create_pothole(hole["pos"], float(hole["radius"]), cost_map)
 
 	# ── Blocked Ridge Walls (narrow passages, dead-ends) ───────────────────
 	var ridge_data: Array[Dictionary] = [
@@ -270,7 +299,6 @@ func _create_ditch(pos: Vector3, radius: float, cost_map: CostMap) -> void:
 	ring_mesh.inner_radius = radius - 0.15
 	ring_mesh.outer_radius = radius + 0.18
 	ring_mesh.ring_segments = 14
-	ring_mesh.section_segments = 6
 	var ring_mat: StandardMaterial3D = StandardMaterial3D.new()
 	ring_mat.albedo_color = Color(1.0, 0.7, 0.0, 1.0)
 	ring_mat.emission_enabled = true
@@ -279,6 +307,7 @@ func _create_ditch(pos: Vector3, radius: float, cost_map: CostMap) -> void:
 	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	ring_mesh.material = ring_mat
 	ring.mesh = ring_mesh
+	ring.rotation.x = PI * 0.5
 	ring.position.y = 0.08
 	body.add_child(ring)
 
@@ -293,6 +322,68 @@ func _create_ditch(pos: Vector3, radius: float, cost_map: CostMap) -> void:
 	registered_obstacles.append({"type": "DITCH", "pos": pos, "radius": radius})
 	var gp: Vector2i = cost_map.world_to_grid(pos)
 	cost_map.set_hazard(gp.x, gp.y, "DITCH", int(ceil(radius)))
+
+func _create_pothole(pos: Vector3, radius: float, cost_map: CostMap) -> void:
+	var body := Area3D.new()
+	body.name = "Pothole_%d" % registered_obstacles.size()
+	body.position = pos
+	body.set_meta("obstacle_type", "POTHOLE")
+	body.collision_layer = 4
+	body.collision_mask = 2
+
+	var depression := MeshInstance3D.new()
+	var dish := CylinderMesh.new()
+	dish.top_radius = radius
+	dish.bottom_radius = radius * 0.82
+	dish.height = 0.025
+	dish.radial_segments = 24
+	dish.material = mat_pothole
+	depression.mesh = dish
+	depression.position.y = -0.06
+	body.add_child(depression)
+
+	var rim := MeshInstance3D.new()
+	var rim_mesh := TorusMesh.new()
+	rim_mesh.inner_radius = radius * 0.88
+	rim_mesh.outer_radius = radius
+	rim_mesh.ring_segments = 24
+	rim_mesh.rings = 6
+	var rim_mat := StandardMaterial3D.new()
+	rim_mat.albedo_color = Color(0.28, 0.24, 0.18)
+	rim_mat.roughness = 0.9
+	rim_mesh.material = rim_mat
+	rim.mesh = rim_mesh
+	rim.rotation.x = PI * 0.5
+	rim.position.y = -0.05
+	body.add_child(rim)
+
+	# Thin blue sheen makes the puddle catch the bright sky in the low-detail renderer.
+	var reflection := MeshInstance3D.new()
+	var sheen := BoxMesh.new()
+	sheen.size = Vector3(radius * 1.05, 0.012, 0.14)
+	sheen.material = mat_puddle_glint
+	reflection.mesh = sheen
+	reflection.position = Vector3(-radius * 0.12, -0.005, -radius * 0.22)
+	reflection.rotation.y = -0.42
+	body.add_child(reflection)
+
+	var col := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = radius
+	shape.height = 0.12
+	col.shape = shape
+	col.position.y = -0.02
+	body.add_child(col)
+	body.body_entered.connect(_on_pothole_body_entered)
+
+	add_child(body)
+	registered_obstacles.append({"type": "POTHOLE", "pos": pos, "radius": radius})
+	var gp := cost_map.world_to_grid(pos)
+	cost_map.set_hazard(gp.x, gp.y, "POTHOLE", int(ceil(radius)))
+
+func _on_pothole_body_entered(body: Node3D) -> void:
+	if body is UGV:
+		(body as UGV).apply_pothole_impact()
 
 func _create_blocked_ridge(pos: Vector3, size: Vector3, cost_map: CostMap) -> void:
 	var body: StaticBody3D = StaticBody3D.new()
