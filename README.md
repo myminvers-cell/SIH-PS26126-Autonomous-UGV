@@ -16,8 +16,8 @@ These are **estimated targets** for the current GL Compatibility renderer and pr
 
 | Target | CPU | Memory | Graphics | Resolution and frame rate |
 |---|---|---:|---|---|
-| Minimum | Modern 4-core x64 CPU, 3.0 GHz class | 8 GB RAM | OpenGL 3.3 compatible GPU, integrated or discrete, with 2 GB graphics memory or shared equivalent | 1280×720, low settings, target 30 FPS |
-| Recommended | Modern 6-core x64 CPU, 3.5 GHz class | 16 GB RAM | Discrete GPU in the GTX 1650 / RX 6400 performance class or better, 4 GB VRAM | 1920×1080, medium settings, target 60 FPS |
+| Minimum | Modern 2-core x64 CPU, 3.0 GHz class | 4 GB RAM | OpenGL 3.3 compatible GPU, integrated or discrete, with 1 GB graphics memory or shared equivalent | 1280×720, low settings, target 30 FPS |
+| Recommended | Modern 4-core x64 CPU, 3.5 GHz class | 8 GB RAM | Discrete GPU in the MX150 / RX 550 performance class or better, 2 GB VRAM | 1920×1080, medium settings, target 60 FPS |
 
 **Development:** Godot Engine 4.7.2. Standalone game builds include the runtime and project resources, so players do not need Godot installed.
 
